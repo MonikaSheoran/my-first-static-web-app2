@@ -4,11 +4,14 @@
   "description": "",
   "scripts": {
     "start": "func start",
+    "start-all" : "swa start src --api-location api",
     "test": "echo \"No tests yet...\""
   },
   "dependencies": {
-    "@azure/functions": "^4.0.0"
+    "@azure/functions": "^4.0.0",
+    "@azure/storage-blob": "^12.27.0",
+    "formidable": "^3.5.4",
+    "parse-multipart": "^1.0.4"
   },
-  "devDependencies": {},
-  "main": "src/{index.js,functions/*.js}"
+  "main": "index.js"
 }

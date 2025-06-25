@@ -1,25 +1,1129 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
-    <title>Vanilla JavaScript App</title>
-</head>
+    <title>Quick File Upload & Metadata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            padding: 24px;
+        }
+
+        .file-drop-zone {
+            border: 3px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .file-drop-zone.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        .file-drop-zone.has-file {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .drop-icon {
+            font-size: 48px;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+
+        .drop-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .drop-subtext {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            display: none;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #0c4a6e;
+            margin-bottom: 4px;
+        }
+
+        .file-size {
+            color: #0369a1;
+            font-size: 14px;
+        }
+
+        .metadata-form {
+            display: grid;
+            gap: 18px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .required::after {
+            content: "*";
+            color: #ef4444;
+            margin-left: 4px;
+        }
+
+        input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+        }
+
+        .tag-input {
+            min-height: 50px;
+            padding: 8px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: text;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .tag-input:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+        }
+
+        .tag {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .tag-input input {
+            border: none;
+            outline: none;
+            background: transparent;
+            flex: 1;
+            min-width: 100px;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .selection-item {
+            position: relative;
+        }
+
+        .selection-item input[type="checkbox"] {
+            display: none;
+        }
+
+        .selection-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 8px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            text-align: center;
+            min-height: 80px;
+            justify-content: center;
+        }
+
+        .selection-label:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .selection-item input[type="checkbox"]:checked + .selection-label {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .selection-icon {
+            font-size: 20px;
+            margin-bottom: 6px;
+        }
+
+        .selection-name {
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* Time period specific styling */
+        .time-periods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .time-period-label {
+            min-height: 70px;
+            padding: 8px 6px;
+        }
+
+        /* Metrics specific styling */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .metric-label {
+            min-height: 85px;
+            padding: 10px 8px;
+        }
+
+        /* Units specific styling */
+        .units-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .unit-label {
+            min-height: 65px;
+            padding: 8px 6px;
+        }
+
+        .submit-area {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            transform: translateY(0);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgb(16 185 129 / 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .success-message {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+            
+            .file-drop-zone {
+                padding: 20px 16px;
+            }
+
+            .selection-grid {
+                grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+            }
+
+            .time-periods {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+            }
+
+            .units-grid {
+                grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .upload-area {
+                padding: 16px;
+            }
+
+            .metadata-form {
+                gap: 16px;
+            }
+
+            .selection-grid {
+                grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+                gap: 6px;
+            }
+
+            .time-periods {
+                grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+            }
+
+            .units-grid {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            }
+        }
+    </style>
+</head>
 <body>
-    <main>
-    <h1>Vanilla JavaScript App</h1>
-    <p>Loading content from the API: <b id="name">...</b></p>
-    </main>
+    <div class="upload-container">
+        <div class="header">
+            <h1>📊 Quick Upload</h1>
+            <p>Drop your Excel file and add metadata in seconds</p>
+        </div>
+
+        <div class="upload-area">
+            <!-- File Upload Zone -->
+            <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div class="drop-icon">📄</div>
+                <div class="drop-text">Drop Excel file here or click to browse</div>
+                <div class="drop-subtext">Supports .xlsx, .xls files</div>
+            </div>
+            
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+            
+            <div class="file-info" id="fileInfo">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+
+            <!-- Quick Metadata Form -->
+            <form class="metadata-form" id="metadataForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="company" class="required">Company</label>
+                        <input type="text" id="company" name="company" placeholder="e.g., EV Incorporated" required autocomplete="organization">
+                    </div>
+                    <div class="form-group">
+                        <label for="time_period" class="required">Time Periods</label>
+                        <input type="text" id="time_period" name="time_period" placeholder="e.g., 2024, Q1 2024, March 2024 (comma separated)" required>
+                        <div class="time-periods">
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_2024" value="2024" onchange="addTimePeriodFromIcon('2024')">
+                                <label for="tp_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">📅</div>
+                                    <div class="selection-name">2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_2023" value="2023" onchange="addTimePeriodFromIcon('2023')">
+                                <label for="tp_2023" class="selection-label time-period-label">
+                                    <div class="selection-icon">📅</div>
+                                    <div class="selection-name">2023</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_q1_2024" value="Q1 2024" onchange="addTimePeriodFromIcon('Q1 2024')">
+                                <label for="tp_q1_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">📊</div>
+                                    <div class="selection-name">Q1 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_q2_2024" value="Q2 2024" onchange="addTimePeriodFromIcon('Q2 2024')">
+                                <label for="tp_q2_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">📊</div>
+                                    <div class="selection-name">Q2 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_q3_2024" value="Q3 2024" onchange="addTimePeriodFromIcon('Q3 2024')">
+                                <label for="tp_q3_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">📊</div>
+                                    <div class="selection-name">Q3 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_q4_2024" value="Q4 2024" onchange="addTimePeriodFromIcon('Q4 2024')">
+                                <label for="tp_q4_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">📊</div>
+                                    <div class="selection-name">Q4 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_mar_2024" value="March 2024" onchange="addTimePeriodFromIcon('March 2024')">
+                                <label for="tp_mar_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">🗓️</div>
+                                    <div class="selection-name">Mar 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_apr_2024" value="April 2024" onchange="addTimePeriodFromIcon('April 2024')">
+                                <label for="tp_apr_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">🗓️</div>
+                                    <div class="selection-name">Apr 2024</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tp_may_2024" value="May 2024" onchange="addTimePeriodFromIcon('May 2024')">
+                                <label for="tp_may_2024" class="selection-label time-period-label">
+                                    <div class="selection-icon">🗓️</div>
+                                    <div class="selection-name">May 2024</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
+                            💡 Click icons above for quick selection, or type custom periods directly
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required">Business Units (comma separated)</label>
+                        <div class="tag-input" id="businessUnitInput" onclick="focusTagInput(this)">
+                            <input type="text" placeholder="e.g., Slough EV Hub, London Office" onkeydown="handleTagInput(event, 'business_unit')" onblur="addCurrentTag(this, 'business_unit')">
+                        </div>
+                        <input type="hidden" id="business_unit" name="business_unit" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Locations (comma separated)</label>
+                        <div class="tag-input" id="locationInput" onclick="focusTagInput(this)">
+                            <input type="text" placeholder="e.g., Slough EV Hub, Manchester" onkeydown="handleTagInput(event, 'location')" onblur="addCurrentTag(this, 'location')">
+                        </div>
+                        <input type="hidden" id="location" name="location" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="esg_topic" class="required">ESG Topics</label>
+                    <input type="text" id="esg_topic" name="esg_topic" placeholder="e.g., Environment, Energy, Social (comma separated)" required>
+                    <div class="selection-grid">
+                        <div class="selection-item">
+                            <input type="checkbox" id="env" value="Environment" onchange="addESGTopicFromIcon('Environment')">
+                            <label for="env" class="selection-label">
+                                <div class="selection-icon">🌍</div>
+                                <div class="selection-name">Environment</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="energy" value="Energy" onchange="addESGTopicFromIcon('Energy')">
+                            <label for="energy" class="selection-label">
+                                <div class="selection-icon">⚡</div>
+                                <div class="selection-name">Energy</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="social" value="Social" onchange="addESGTopicFromIcon('Social')">
+                            <label for="social" class="selection-label">
+                                <div class="selection-icon">👥</div>
+                                <div class="selection-name">Social</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="governance" value="Governance" onchange="addESGTopicFromIcon('Governance')">
+                            <label for="governance" class="selection-label">
+                                <div class="selection-icon">⚖️</div>
+                                <div class="selection-name">Governance</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="water" value="Water" onchange="addESGTopicFromIcon('Water')">
+                            <label for="water" class="selection-label">
+                                <div class="selection-icon">💧</div>
+                                <div class="selection-name">Water</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="waste" value="Waste" onchange="addESGTopicFromIcon('Waste')">
+                            <label for="waste" class="selection-label">
+                                <div class="selection-icon">♻️</div>
+                                <div class="selection-name">Waste</div>
+                            </label>
+                        </div>
+                        <div class="selection-item">
+                            <input type="checkbox" id="emissions" value="Emissions" onchange="addESGTopicFromIcon('Emissions')">
+                            <label for="emissions" class="selection-label">
+                                <div class="selection-icon">🏭</div>
+                                <div class="selection-name">Emissions</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
+                        💡 Click icons above for quick selection, or type custom topics directly
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="esg_metric" class="required">ESG Metrics</label>
+                        <input type="text" id="esg_metric" name="esg_metric" placeholder="e.g., Renewable Electricity Consumption, Water Usage (comma separated)" required>
+                        <div class="metrics-grid">
+                            <div class="selection-item">
+                                <input type="checkbox" id="renewable_elec" value="Renewable Electricity Consumption" onchange="addMetricFromIcon('Renewable Electricity Consumption')">
+                                <label for="renewable_elec" class="selection-label metric-label">
+                                    <div class="selection-icon">🔋</div>
+                                    <div class="selection-name">Renewable Electricity</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="total_energy" value="Total Energy Consumption" onchange="addMetricFromIcon('Total Energy Consumption')">
+                                <label for="total_energy" class="selection-label metric-label">
+                                    <div class="selection-icon">⚡</div>
+                                    <div class="selection-name">Total Energy</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="water_usage" value="Water Usage" onchange="addMetricFromIcon('Water Usage')">
+                                <label for="water_usage" class="selection-label metric-label">
+                                    <div class="selection-icon">🚰</div>
+                                    <div class="selection-name">Water Usage</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="waste_generated" value="Waste Generated" onchange="addMetricFromIcon('Waste Generated')">
+                                <label for="waste_generated" class="selection-label metric-label">
+                                    <div class="selection-icon">🗑️</div>
+                                    <div class="selection-name">Waste Generated</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="recycling_rate" value="Recycling Rate" onchange="addMetricFromIcon('Recycling Rate')">
+                                <label for="recycling_rate" class="selection-label metric-label">
+                                    <div class="selection-icon">♻️</div>
+                                    <div class="selection-name">Recycling Rate</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="co2_emissions" value="CO2 Emissions" onchange="addMetricFromIcon('CO2 Emissions')">
+                                <label for="co2_emissions" class="selection-label metric-label">
+                                    <div class="selection-icon">💨</div>
+                                    <div class="selection-name">CO2 Emissions</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="employee_satisfaction" value="Employee Satisfaction" onchange="addMetricFromIcon('Employee Satisfaction')">
+                                <label for="employee_satisfaction" class="selection-label metric-label">
+                                    <div class="selection-icon">😊</div>
+                                    <div class="selection-name">Employee Satisfaction</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="safety_incidents" value="Safety Incidents" onchange="addMetricFromIcon('Safety Incidents')">
+                                <label for="safety_incidents" class="selection-label metric-label">
+                                    <div class="selection-icon">🦺</div>
+                                    <div class="selection-name">Safety Incidents</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
+                            💡 Click icons above for quick selection, or type custom metrics directly
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="unit" class="required">Units</label>
+                        <input type="text" id="unit" name="unit" placeholder="e.g., kWh, tonnes, % (comma separated)" required>
+                        <div class="units-grid">
+                            <div class="selection-item">
+                                <input type="checkbox" id="kwh" value="kWh" onchange="addUnitFromIcon('kWh')">
+                                <label for="kwh" class="selection-label unit-label">
+                                    <div class="selection-icon">⚡</div>
+                                    <div class="selection-name">kWh</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="mwh" value="MWh" onchange="addUnitFromIcon('MWh')">
+                                <label for="mwh" class="selection-label unit-label">
+                                    <div class="selection-icon">🔌</div>
+                                    <div class="selection-name">MWh</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="tonnes" value="tonnes" onchange="addUnitFromIcon('tonnes')">
+                                <label for="tonnes" class="selection-label unit-label">
+                                    <div class="selection-icon">⚖️</div>
+                                    <div class="selection-name">tonnes</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="kg" value="kg" onchange="addUnitFromIcon('kg')">
+                                <label for="kg" class="selection-label unit-label">
+                                    <div class="selection-icon">📏</div>
+                                    <div class="selection-name">kg</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="m3" value="m³" onchange="addUnitFromIcon('m³')">
+                                <label for="m3" class="selection-label unit-label">
+                                    <div class="selection-icon">📦</div>
+                                    <div class="selection-name">m³</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="litres" value="litres" onchange="addUnitFromIcon('litres')">
+                                <label for="litres" class="selection-label unit-label">
+                                    <div class="selection-icon">🧴</div>
+                                    <div class="selection-name">litres</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="percent" value="%" onchange="addUnitFromIcon('%')">
+                                <label for="percent" class="selection-label unit-label">
+                                    <div class="selection-icon">📊</div>
+                                    <div class="selection-name">%</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="mj" value="MJ" onchange="addUnitFromIcon('MJ')">
+                                <label for="mj" class="selection-label unit-label">
+                                    <div class="selection-icon">🔥</div>
+                                    <div class="selection-name">MJ</div>
+                                </label>
+                            </div>
+                            <div class="selection-item">
+                                <input type="checkbox" id="count" value="count" onchange="addUnitFromIcon('count')">
+                                <label for="count" class="selection-label unit-label">
+                                    <div class="selection-icon">🔢</div>
+                                    <div class="selection-name">count</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                            💡 Click icons above for quick selection, or type custom units directly
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="submit-area">
+                <button type="button" class="submit-btn" id="submitBtn" onclick="submitData()" disabled>
+                    Select a file to continue
+                </button>
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="success-message" id="successMessage">
+                    ✅ File uploaded and metadata saved successfully!
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-    (async function() {
-        const { text } = await( await fetch(`/api/message`)).json();
-        document.querySelector('#name').textContent = text;
-    }());
+        let selectedFile = null;
+
+        // Time period functionality
+        function addTimePeriodFromIcon(period) {
+            const input = document.getElementById('time_period');
+            const checkbox = document.querySelector(`input[value="${period}"]`);
+            
+            if (checkbox.checked) {
+                // Add the period to the text field
+                const currentValue = input.value;
+                const periods = currentValue ? currentValue.split(',').map(p => p.trim()).filter(p => p) : [];
+                
+                if (!periods.includes(period)) {
+                    periods.push(period);
+                    input.value = periods.join(', ');
+                }
+            } else {
+                // Remove the period from the text field
+                const currentValue = input.value;
+                const periods = currentValue ? currentValue.split(',').map(p => p.trim()).filter(p => p) : [];
+                const filteredPeriods = periods.filter(p => p !== period);
+                input.value = filteredPeriods.join(', ');
+            }
+        }
+
+        // Update checkboxes when user types directly in the time period field
+        function syncTimePeriodsWithInput() {
+            const input = document.getElementById('time_period');
+            const inputPeriods = input.value ? input.value.split(',').map(p => p.trim()).filter(p => p) : [];
+            
+            // Update all checkboxes based on what's in the text field
+            document.querySelectorAll('.time-periods input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = inputPeriods.includes(checkbox.value);
+            });
+        }
+
+        // Add event listener for manual typing in time period field
+        document.addEventListener('DOMContentLoaded', function() {
+            const timePeriodInput = document.getElementById('time_period');
+            timePeriodInput.addEventListener('input', syncTimePeriodsWithInput);
+            timePeriodInput.addEventListener('blur', syncTimePeriodsWithInput);
+
+            const esgTopicInput = document.getElementById('esg_topic');
+            esgTopicInput.addEventListener('input', syncESGTopicsWithInput);
+            esgTopicInput.addEventListener('blur', syncESGTopicsWithInput);
+
+            const esgMetricInput = document.getElementById('esg_metric');
+            esgMetricInput.addEventListener('input', syncMetricsWithInput);
+            esgMetricInput.addEventListener('blur', syncMetricsWithInput);
+
+            const unitInput = document.getElementById('unit');
+            unitInput.addEventListener('input', syncUnitsWithInput);
+            unitInput.addEventListener('blur', syncUnitsWithInput);
+        });
+
+        // Tag input functionality
+        function focusTagInput(container) {
+            const input = container.querySelector('input');
+            input.focus();
+        }
+
+        function handleTagInput(event, fieldName) {
+            if (event.key === 'Enter' || event.key === ',') {
+                event.preventDefault();
+                addCurrentTag(event.target, fieldName);
+            } else if (event.key === 'Backspace' && event.target.value === '') {
+                const container = event.target.parentElement;
+                const tags = container.querySelectorAll('.tag');
+                if (tags.length > 0) {
+                    removeTag(tags[tags.length - 1], fieldName);
+                }
+            }
+        }
+
+        function addCurrentTag(input, fieldName) {
+            const value = input.value.trim();
+            if (value) {
+                addTag(value, fieldName);
+                input.value = '';
+            }
+        }
+
+        function addTag(text, fieldName) {
+            const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
+            const input = container.querySelector('input');
+            
+            const tag = document.createElement('div');
+            tag.className = 'tag';
+            tag.innerHTML = `${text} <span class="tag-remove" onclick="removeTag(this.parentElement, '${fieldName}')">×</span>`;
+            
+            container.insertBefore(tag, input);
+            updateHiddenField(fieldName);
+        }
+
+        function removeTag(tag, fieldName) {
+            tag.remove();
+            updateHiddenField(fieldName);
+        }
+
+        function updateHiddenField(fieldName) {
+            const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
+            const tags = container.querySelectorAll('.tag');
+            const values = Array.from(tags).map(tag => tag.textContent.replace('×', '').trim());
+            document.getElementById(fieldName).value = values.join(', ');
+        }
+
+        // ESG Topics functionality
+        function addESGTopicFromIcon(topic) {
+            const input = document.getElementById('esg_topic');
+            const checkbox = document.querySelector(`input[value="${topic}"]`);
+            
+            if (checkbox.checked) {
+                // Add the topic to the text field
+                const currentValue = input.value;
+                const topics = currentValue ? currentValue.split(',').map(t => t.trim()).filter(t => t) : [];
+                
+                if (!topics.includes(topic)) {
+                    topics.push(topic);
+                    input.value = topics.join(', ');
+                }
+            } else {
+                // Remove the topic from the text field
+                const currentValue = input.value;
+                const topics = currentValue ? currentValue.split(',').map(t => t.trim()).filter(t => t) : [];
+                const filteredTopics = topics.filter(t => t !== topic);
+                input.value = filteredTopics.join(', ');
+            }
+        }
+
+        // Update checkboxes when user types directly in the ESG topics field
+        function syncESGTopicsWithInput() {
+            const input = document.getElementById('esg_topic');
+            const inputTopics = input.value ? input.value.split(',').map(t => t.trim()).filter(t => t) : [];
+            
+            // Update all checkboxes based on what's in the text field
+            document.querySelectorAll('.selection-grid input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = inputTopics.includes(checkbox.value);
+            });
+        }
+
+        // Metrics functionality
+        function addMetricFromIcon(metric) {
+            const input = document.getElementById('esg_metric');
+            const checkbox = document.querySelector(`input[value="${metric}"]`);
+            
+            if (checkbox.checked) {
+                // Add the metric to the text field
+                const currentValue = input.value;
+                const metrics = currentValue ? currentValue.split(',').map(m => m.trim()).filter(m => m) : [];
+                
+                if (!metrics.includes(metric)) {
+                    metrics.push(metric);
+                    input.value = metrics.join(', ');
+                }
+            } else {
+                // Remove the metric from the text field
+                const currentValue = input.value;
+                const metrics = currentValue ? currentValue.split(',').map(m => m.trim()).filter(m => m) : [];
+                const filteredMetrics = metrics.filter(m => m !== metric);
+                input.value = filteredMetrics.join(', ');
+            }
+        }
+
+        // Update checkboxes when user types directly in the metrics field
+        function syncMetricsWithInput() {
+            const input = document.getElementById('esg_metric');
+            const inputMetrics = input.value ? input.value.split(',').map(m => m.trim()).filter(m => m) : [];
+            
+            // Update all checkboxes based on what's in the text field
+            document.querySelectorAll('.metrics-grid input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = inputMetrics.includes(checkbox.value);
+            });
+        }
+
+        // Units functionality
+        function addUnitFromIcon(unit) {
+            const input = document.getElementById('unit');
+            const checkbox = document.querySelector(`input[value="${unit}"]`);
+            
+            if (checkbox.checked) {
+                // Add the unit to the text field
+                const currentValue = input.value;
+                const units = currentValue ? currentValue.split(',').map(u => u.trim()).filter(u => u) : [];
+                
+                if (!units.includes(unit)) {
+                    units.push(unit);
+                    input.value = units.join(', ');
+                }
+            } else {
+                // Remove the unit from the text field
+                const currentValue = input.value;
+                const units = currentValue ? currentValue.split(',').map(u => u.trim()).filter(u => u) : [];
+                const filteredUnits = units.filter(u => u !== unit);
+                input.value = filteredUnits.join(', ');
+            }
+        }
+
+        // Update checkboxes when user types directly in the units field
+        function syncUnitsWithInput() {
+            const input = document.getElementById('unit');
+            const inputUnits = input.value ? input.value.split(',').map(u => u.trim()).filter(u => u) : [];
+            
+            // Update all checkboxes based on what's in the text field
+            document.querySelectorAll('.units-grid input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = inputUnits.includes(checkbox.value);
+            });
+        }
+
+        // File handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('Please select an Excel file (.xlsx or .xls)');
+                return;
+            }
+
+            selectedFile = file;
+            
+            dropZone.classList.add('has-file');
+            dropZone.innerHTML = `
+                <div class="drop-icon">✅</div>
+                <div class="drop-text">File Ready: ${file.name}</div>
+                <div class="drop-subtext">Click to change file</div>
+            `;
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').classList.add('show');
+            
+            updateSubmitButton();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function updateSubmitButton() {
+            const btn = document.getElementById('submitBtn');
+            if (selectedFile) {
+                btn.disabled = false;
+                btn.textContent = '🚀 Upload & Process';
+            } else {
+                btn.disabled = true;
+                btn.textContent = 'Select a file to continue';
+            }
+        }
+
+        // Form submission
+        function submitData() {
+            if (!selectedFile) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const formData = new FormData(document.getElementById('metadataForm'));
+            
+            // Validate required fields
+            const required = ['company', 'business_unit', 'location', 'time_period', 'esg_topic', 'esg_metric', 'unit'];
+            const missing = required.filter(field => !formData.get(field));
+            
+            if (missing.length > 0) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Simulate upload progress
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            progressBar.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+
+            fetch('/api/storage', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                // Only read the body ONCE
+                let text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = text;
+                }
+                alert('Upload response: ' + (typeof data === 'object' ? JSON.stringify(data) : data));
+            })
+            .catch(err => {
+                alert('Error uploading file: ' + err);
+            });
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress > 100) progress = 100;
+                progressFill.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    setTimeout(() => {
+                        document.getElementById('successMessage').style.display = 'block';
+                        submitBtn.textContent = '✅ Upload Complete';
+                        
+                        const metadata = {
+                            company: formData.get('company'),
+                            business_unit: formData.get('business_unit'),
+                            location: formData.get('location'),
+                            time_period: formData.get('time_period'),
+                            esg_topic: formData.get('esg_topic'),
+                            esg_metric: formData.get('esg_metric'),
+                            unit: formData.get('unit'),
+                            file_name: selectedFile.name,
+                            file_size: selectedFile.size
+                        };
+                        
+                        console.log('Upload complete:', metadata);
+                        
+                        setTimeout(() => {
+                            if (confirm('Upload another file?')) {
+                                location.reload();
+                            }
+                        }, 3000);
+                    }, 500);
+                }
+            }, 200);
+        }
+
+
+        
+        // Initialize
+        updateSubmitButton();
     </script>
 </body>
-
 </html>
