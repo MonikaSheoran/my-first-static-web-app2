@@ -1,7 +1,6 @@
 const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
-const { IncomingForm } = require('formidable');
-const fs = require('fs');
+const multipart = require('parse-multipart');
 
 // Message function (v4 model)
 app.http('message', {
@@ -15,41 +14,49 @@ app.http('message', {
 // Storage function (v4 model)
 app.http('storage', {
     methods: ['POST'],
-    authLevel: 'function',
+    authLevel: 'anonymous',
     handler: async (request, context) => {
-        // Parse form data as a Promise
-        const form = new IncomingForm({ multiples: false });
-        const { fields, files, error } = await new Promise((resolve) => {
-            form.parse(request, (err, fields, files) => {
-                if (err) resolve({ error: err });
-                else resolve({ fields, files });
-            });
-        });
-        if (error) {
-            return { status: 400, body: { error: 'Error parsing form data', details: error.message } };
+        // Get boundary from content-type header
+        const contentType = request.headers.get('content-type') || request.headers.get('Content-Type');
+        if (!contentType) {
+            return { status: 400, body: 'Missing content-type header' };
         }
-        if (!files || !files.file) {
-            return { status: 400, body: { error: 'No file uploaded' } };
+        const boundary = multipart.getBoundary(contentType);
+        if (!boundary) {
+            return { status: 400, body: 'Malformed content-type header: boundary not found' };
         }
-        const file = files.file;
-        const filePath = file.filepath || file.path;
-        const fileName = file.originalFilename || file.name;
+        // Get raw body as Buffer
+        const bodyBuffer = Buffer.from(await request.arrayBuffer());
+        // Parse the multipart form data
+        const parts = multipart.Parse(bodyBuffer, boundary);
+        // Find the file part (assume first file)
+        const filePart = parts.find(p => p.filename);
+        if (!filePart) {
+            return { status: 400, body: 'No file uploaded' };
+        }
+        // Get metadata fields
+        const fields = {};
+        for (const part of parts) {
+            if (!part.filename) {
+                fields[part.name] = part.data.toString();
+            }
+        }
         try {
             const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AzureWebJobsStorage);
             const containerName = 'upload';
             const containerClient = blobServiceClient.getContainerClient(containerName);
             await containerClient.createIfNotExists();
-            const blockBlobClient = containerClient.getBlockBlobClient(fileName);
-            const uploadStream = fs.createReadStream(filePath);
-            await blockBlobClient.uploadStream(uploadStream, undefined, undefined, {
-                blobHTTPHeaders: { blobContentType: file.mimetype || 'application/octet-stream' }
+            const blockBlobClient = containerClient.getBlockBlobClient(filePart.filename);
+            await blockBlobClient.uploadData(filePart.data, {
+                blobHTTPHeaders: { blobContentType: filePart.type || 'application/octet-stream' }
             });
             return {
                 status: 200,
                 body: {
                     message: 'File uploaded successfully',
-                    fileName,
-                    url: blockBlobClient.url
+                    fileName: filePart.filename,
+                    url: blockBlobClient.url,
+                    metadata: fields
                 }
             };
         } catch (uploadErr) {

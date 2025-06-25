@@ -760,239 +760,10 @@
     <script>
         let selectedFile = null;
 
-        // Time period functionality
-        function addTimePeriodFromIcon(period) {
-            const input = document.getElementById('time_period');
-            const checkbox = document.querySelector(`input[value="${period}"]`);
-            
-            if (checkbox.checked) {
-                // Add the period to the text field
-                const currentValue = input.value;
-                const periods = currentValue ? currentValue.split(',').map(p => p.trim()).filter(p => p) : [];
-                
-                if (!periods.includes(period)) {
-                    periods.push(period);
-                    input.value = periods.join(', ');
-                }
-            } else {
-                // Remove the period from the text field
-                const currentValue = input.value;
-                const periods = currentValue ? currentValue.split(',').map(p => p.trim()).filter(p => p) : [];
-                const filteredPeriods = periods.filter(p => p !== period);
-                input.value = filteredPeriods.join(', ');
-            }
-        }
-
-        // Update checkboxes when user types directly in the time period field
-        function syncTimePeriodsWithInput() {
-            const input = document.getElementById('time_period');
-            const inputPeriods = input.value ? input.value.split(',').map(p => p.trim()).filter(p => p) : [];
-            
-            // Update all checkboxes based on what's in the text field
-            document.querySelectorAll('.time-periods input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = inputPeriods.includes(checkbox.value);
-            });
-        }
-
-        // Add event listener for manual typing in time period field
-        document.addEventListener('DOMContentLoaded', function() {
-            const timePeriodInput = document.getElementById('time_period');
-            timePeriodInput.addEventListener('input', syncTimePeriodsWithInput);
-            timePeriodInput.addEventListener('blur', syncTimePeriodsWithInput);
-
-            const esgTopicInput = document.getElementById('esg_topic');
-            esgTopicInput.addEventListener('input', syncESGTopicsWithInput);
-            esgTopicInput.addEventListener('blur', syncESGTopicsWithInput);
-
-            const esgMetricInput = document.getElementById('esg_metric');
-            esgMetricInput.addEventListener('input', syncMetricsWithInput);
-            esgMetricInput.addEventListener('blur', syncMetricsWithInput);
-
-            const unitInput = document.getElementById('unit');
-            unitInput.addEventListener('input', syncUnitsWithInput);
-            unitInput.addEventListener('blur', syncUnitsWithInput);
-        });
-
-        // Tag input functionality
-        function focusTagInput(container) {
-            const input = container.querySelector('input');
-            input.focus();
-        }
-
-        function handleTagInput(event, fieldName) {
-            if (event.key === 'Enter' || event.key === ',') {
-                event.preventDefault();
-                addCurrentTag(event.target, fieldName);
-            } else if (event.key === 'Backspace' && event.target.value === '') {
-                const container = event.target.parentElement;
-                const tags = container.querySelectorAll('.tag');
-                if (tags.length > 0) {
-                    removeTag(tags[tags.length - 1], fieldName);
-                }
-            }
-        }
-
-        function addCurrentTag(input, fieldName) {
-            const value = input.value.trim();
-            if (value) {
-                addTag(value, fieldName);
-                input.value = '';
-            }
-        }
-
-        function addTag(text, fieldName) {
-            const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
-            const input = container.querySelector('input');
-            
-            const tag = document.createElement('div');
-            tag.className = 'tag';
-            tag.innerHTML = `${text} <span class="tag-remove" onclick="removeTag(this.parentElement, '${fieldName}')">×</span>`;
-            
-            container.insertBefore(tag, input);
-            updateHiddenField(fieldName);
-        }
-
-        function removeTag(tag, fieldName) {
-            tag.remove();
-            updateHiddenField(fieldName);
-        }
-
-        function updateHiddenField(fieldName) {
-            const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
-            const tags = container.querySelectorAll('.tag');
-            const values = Array.from(tags).map(tag => tag.textContent.replace('×', '').trim());
-            document.getElementById(fieldName).value = values.join(', ');
-        }
-
-        // ESG Topics functionality
-        function addESGTopicFromIcon(topic) {
-            const input = document.getElementById('esg_topic');
-            const checkbox = document.querySelector(`input[value="${topic}"]`);
-            
-            if (checkbox.checked) {
-                // Add the topic to the text field
-                const currentValue = input.value;
-                const topics = currentValue ? currentValue.split(',').map(t => t.trim()).filter(t => t) : [];
-                
-                if (!topics.includes(topic)) {
-                    topics.push(topic);
-                    input.value = topics.join(', ');
-                }
-            } else {
-                // Remove the topic from the text field
-                const currentValue = input.value;
-                const topics = currentValue ? currentValue.split(',').map(t => t.trim()).filter(t => t) : [];
-                const filteredTopics = topics.filter(t => t !== topic);
-                input.value = filteredTopics.join(', ');
-            }
-        }
-
-        // Update checkboxes when user types directly in the ESG topics field
-        function syncESGTopicsWithInput() {
-            const input = document.getElementById('esg_topic');
-            const inputTopics = input.value ? input.value.split(',').map(t => t.trim()).filter(t => t) : [];
-            
-            // Update all checkboxes based on what's in the text field
-            document.querySelectorAll('.selection-grid input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = inputTopics.includes(checkbox.value);
-            });
-        }
-
-        // Metrics functionality
-        function addMetricFromIcon(metric) {
-            const input = document.getElementById('esg_metric');
-            const checkbox = document.querySelector(`input[value="${metric}"]`);
-            
-            if (checkbox.checked) {
-                // Add the metric to the text field
-                const currentValue = input.value;
-                const metrics = currentValue ? currentValue.split(',').map(m => m.trim()).filter(m => m) : [];
-                
-                if (!metrics.includes(metric)) {
-                    metrics.push(metric);
-                    input.value = metrics.join(', ');
-                }
-            } else {
-                // Remove the metric from the text field
-                const currentValue = input.value;
-                const metrics = currentValue ? currentValue.split(',').map(m => m.trim()).filter(m => m) : [];
-                const filteredMetrics = metrics.filter(m => m !== metric);
-                input.value = filteredMetrics.join(', ');
-            }
-        }
-
-        // Update checkboxes when user types directly in the metrics field
-        function syncMetricsWithInput() {
-            const input = document.getElementById('esg_metric');
-            const inputMetrics = input.value ? input.value.split(',').map(m => m.trim()).filter(m => m) : [];
-            
-            // Update all checkboxes based on what's in the text field
-            document.querySelectorAll('.metrics-grid input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = inputMetrics.includes(checkbox.value);
-            });
-        }
-
-        // Units functionality
-        function addUnitFromIcon(unit) {
-            const input = document.getElementById('unit');
-            const checkbox = document.querySelector(`input[value="${unit}"]`);
-            
-            if (checkbox.checked) {
-                // Add the unit to the text field
-                const currentValue = input.value;
-                const units = currentValue ? currentValue.split(',').map(u => u.trim()).filter(u => u) : [];
-                
-                if (!units.includes(unit)) {
-                    units.push(unit);
-                    input.value = units.join(', ');
-                }
-            } else {
-                // Remove the unit from the text field
-                const currentValue = input.value;
-                const units = currentValue ? currentValue.split(',').map(u => u.trim()).filter(u => u) : [];
-                const filteredUnits = units.filter(u => u !== unit);
-                input.value = filteredUnits.join(', ');
-            }
-        }
-
-        // Update checkboxes when user types directly in the units field
-        function syncUnitsWithInput() {
-            const input = document.getElementById('unit');
-            const inputUnits = input.value ? input.value.split(',').map(u => u.trim()).filter(u => u) : [];
-            
-            // Update all checkboxes based on what's in the text field
-            document.querySelectorAll('.units-grid input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = inputUnits.includes(checkbox.value);
-            });
-        }
-
-        // File handling
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
-
+        // --- File Handling ---
         function handleFileSelect(event) {
             const file = event.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
+            if (file) handleFile(file);
         }
 
         function handleFile(file) {
@@ -1000,20 +771,16 @@
                 alert('Please select an Excel file (.xlsx or .xls)');
                 return;
             }
-
             selectedFile = file;
-            
             dropZone.classList.add('has-file');
             dropZone.innerHTML = `
                 <div class="drop-icon">✅</div>
                 <div class="drop-text">File Ready: ${file.name}</div>
                 <div class="drop-subtext">Click to change file</div>
             `;
-
             document.getElementById('fileName').textContent = file.name;
             document.getElementById('fileSize').textContent = formatFileSize(file.size);
             document.getElementById('fileInfo').classList.add('show');
-            
             updateSubmitButton();
         }
 
@@ -1027,89 +794,77 @@
 
         function updateSubmitButton() {
             const btn = document.getElementById('submitBtn');
-            if (selectedFile) {
-                btn.disabled = false;
-                btn.textContent = '🚀 Upload & Process';
-            } else {
-                btn.disabled = true;
-                btn.textContent = 'Select a file to continue';
-            }
+            btn.disabled = !selectedFile;
+            btn.textContent = selectedFile ? '🚀 Upload & Process' : 'Select a file to continue';
         }
 
-        // Form submission
+        // --- Form Submission ---
         function submitData() {
             if (!selectedFile) {
                 alert('Please select a file first');
                 return;
             }
-
-            const formData = new FormData(document.getElementById('metadataForm'));
-            
-            // Validate required fields
-            const required = ['company', 'business_unit', 'location', 'time_period', 'esg_topic', 'esg_metric', 'unit'];
-            const missing = required.filter(field => !formData.get(field));
-            
+            const form = document.getElementById('metadataForm');
+            const formData = new FormData();
+            // List all required metadata fields
+            const fields = [
+                'company',
+                'business_unit',
+                'location',
+                'time_period',
+                'esg_topic',
+                'esg_metric',
+                'unit'
+            ];
+            let missing = [];
+            fields.forEach(field => {
+                const value = form.elements[field]?.value?.trim();
+                if (!value) missing.push(field);
+                formData.append(field, value || '');
+            });
             if (missing.length > 0) {
-                alert('Please fill in all required fields');
+                alert('Please fill in all required fields: ' + missing.join(', '));
                 return;
             }
-
-            // Simulate upload progress
+            formData.append('file', selectedFile);
+            // UI feedback
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
             const submitBtn = document.getElementById('submitBtn');
-            
             progressBar.style.display = 'block';
             submitBtn.disabled = true;
             submitBtn.textContent = 'Processing...';
-
-
             fetch('/api/storage', {
                 method: 'POST',
                 body: formData
             })
             .then(async response => {
-                // Only read the body ONCE
                 let text = await response.text();
                 let data;
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    data = text;
-                }
+                try { data = JSON.parse(text); } catch { data = text; }
                 alert('Upload response: ' + (typeof data === 'object' ? JSON.stringify(data) : data));
             })
             .catch(err => {
                 alert('Error uploading file: ' + err);
             });
-            
+            // Simulate progress
             let progress = 0;
             const interval = setInterval(() => {
                 progress += Math.random() * 30;
                 if (progress > 100) progress = 100;
                 progressFill.style.width = progress + '%';
-                
                 if (progress >= 100) {
                     clearInterval(interval);
-                    
                     setTimeout(() => {
                         document.getElementById('successMessage').style.display = 'block';
                         submitBtn.textContent = '✅ Upload Complete';
-                        
-                        const metadata = {
-                            company: formData.get('company'),
-                            business_unit: formData.get('business_unit'),
-                            location: formData.get('location'),
-                            time_period: formData.get('time_period'),
-                            esg_topic: formData.get('esg_topic'),
-                            esg_metric: formData.get('esg_metric'),
-                            unit: formData.get('unit'),
-                            file_name: selectedFile.name,
-                            file_size: selectedFile.size
-                        };
-                        
+                        const metadata = {};
+                        fields.forEach(field => {
+                            metadata[field] = form.elements[field]?.value?.trim();
+                        });
+                        metadata.file_name = selectedFile.name;
+                        metadata.file_size = selectedFile.size;
                         console.log('Upload complete:', metadata);
-                        
                         setTimeout(() => {
                             if (confirm('Upload another file?')) {
                                 location.reload();
@@ -1122,8 +877,61 @@
 
 
         
+        // Tag input functionality
+function focusTagInput(container) {
+    const input = container.querySelector('input');
+    input.focus();
+}
+
+function handleTagInput(event, fieldName) {
+    if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        addCurrentTag(event.target, fieldName);
+    } else if (event.key === 'Backspace' && event.target.value === '') {
+        const container = event.target.parentElement;
+        const tags = container.querySelectorAll('.tag');
+        if (tags.length > 0) {
+            removeTag(tags[tags.length - 1], fieldName);
+        }
+    }
+    // Always update hidden field on input
+    setTimeout(() => updateHiddenField(fieldName), 0);
+}
+
+function addCurrentTag(input, fieldName) {
+    const value = input.value.trim();
+    if (value) {
+        addTag(value, fieldName);
+        input.value = '';
+    }
+    updateHiddenField(fieldName);
+}
+
+function addTag(text, fieldName) {
+    const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
+    const input = container.querySelector('input');
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.innerHTML = `${text} <span class="tag-remove" onclick="removeTag(this.parentElement, '${fieldName}')">×</span>`;
+    container.insertBefore(tag, input);
+    updateHiddenField(fieldName);
+}
+
+function removeTag(tag, fieldName) {
+    tag.remove();
+    updateHiddenField(fieldName);
+}
+
+function updateHiddenField(fieldName) {
+    const container = document.getElementById(fieldName === 'business_unit' ? 'businessUnitInput' : 'locationInput');
+    const tags = container.querySelectorAll('.tag');
+    const values = Array.from(tags).map(tag => tag.textContent.replace('×', '').trim());
+    document.getElementById(fieldName).value = values.join(', ');
+}
+
+        
         // Initialize
-        updateSubmitButton();
+        document.addEventListener('DOMContentLoaded', updateSubmitButton);
     </script>
 </body>
 </html>
