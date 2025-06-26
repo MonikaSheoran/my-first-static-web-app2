@@ -839,40 +839,68 @@
                 body: formData
             })
             .then(async response => {
-                let text = await response.text();
-                let data;
-                try { data = JSON.parse(text); } catch { data = text; }
-                alert('Upload response: ' + (typeof data === 'object' ? JSON.stringify(data) : data));
-            })
-            .catch(err => {
-                alert('Error uploading file: ' + err);
-            });
-            // Simulate progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 30;
-                if (progress > 100) progress = 100;
-                progressFill.style.width = progress + '%';
-                if (progress >= 100) {
+                const data = await response.json();
+
+                if (data.success) {
+                    // Success - show success message
                     clearInterval(interval);
+                    progressFill.style.width = '100%';
                     setTimeout(() => {
                         document.getElementById('successMessage').style.display = 'block';
                         submitBtn.textContent = '✅ Upload Complete';
-                        const metadata = {};
-                        fields.forEach(field => {
-                            metadata[field] = form.elements[field]?.value?.trim();
+
+                        // Log success details
+                        console.log('Upload successful:', {
+                            fileName: data.fileName,
+                            originalFileName: data.originalFileName,
+                            url: data.url,
+                            uploadedAt: data.uploadedAt,
+                            metadata: data.metadata
                         });
-                        metadata.file_name = selectedFile.name;
-                        metadata.file_size = selectedFile.size;
-                        console.log('Upload complete:', metadata);
+
+                        // Ask if user wants to upload another file
                         setTimeout(() => {
-                            if (confirm('Upload another file?')) {
+                            if (confirm(`File "${data.originalFileName}" uploaded successfully!\n\nUpload another file?`)) {
                                 location.reload();
                             }
-                        }, 3000);
+                        }, 2000);
                     }, 500);
+                } else {
+                    // Error from API
+                    clearInterval(interval);
+                    progressBar.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Upload & Process';
+
+                    let errorMessage = data.error || 'Upload failed';
+                    if (data.missingFields && data.missingFields.length > 0) {
+                        errorMessage += '\n\nMissing required fields: ' + data.missingFields.join(', ');
+                    }
+                    if (data.details) {
+                        errorMessage += '\n\nDetails: ' + data.details;
+                    }
+
+                    alert('Upload Error:\n' + errorMessage);
+                    console.error('Upload error:', data);
                 }
-            }, 200);
+            })
+            .catch(err => {
+                // Network or parsing error
+                clearInterval(interval);
+                progressBar.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Upload & Process';
+
+                alert('Network Error:\nFailed to connect to the server. Please check your connection and try again.\n\nError: ' + err.message);
+                console.error('Network error:', err);
+            });
+            // Animate progress bar while upload is in progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15 + 5; // Slower, more realistic progress
+                if (progress > 90) progress = 90; // Don't complete until we get response
+                progressFill.style.width = progress + '%';
+            }, 300);
         }
 
 

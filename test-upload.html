@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, select { padding: 5px; margin-bottom: 10px; width: 300px; }
+        button { padding: 10px 20px; background: #007cba; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
+        .error { border-color: #ff0000; background: #ffe6e6; }
+        .success { border-color: #00ff00; background: #e6ffe6; }
+    </style>
+</head>
+<body>
+    <h1>Test Excel Upload to Azure Blob Storage</h1>
+    
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="file">Excel File (.xlsx or .xls):</label>
+            <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="company">Company:</label>
+            <input type="text" id="company" name="company" value="Test Company Inc" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="business_unit">Business Unit:</label>
+            <input type="text" id="business_unit" name="business_unit" value="IT Department" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Location:</label>
+            <input type="text" id="location" name="location" value="New York" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="time_period">Time Period:</label>
+            <input type="text" id="time_period" name="time_period" value="2024" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="esg_topic">ESG Topic:</label>
+            <input type="text" id="esg_topic" name="esg_topic" value="Environment" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="esg_metric">ESG Metric:</label>
+            <input type="text" id="esg_metric" name="esg_metric" value="Energy Consumption" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="unit">Unit:</label>
+            <input type="text" id="unit" name="unit" value="kWh" required>
+        </div>
+        
+        <button type="submit">Upload File</button>
+    </form>
+    
+    <div id="result" class="result" style="display: none;"></div>
+    
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = 'Uploading...';
+            
+            try {
+                const formData = new FormData();
+                const fileInput = document.getElementById('file');
+                
+                if (!fileInput.files[0]) {
+                    throw new Error('Please select a file');
+                }
+                
+                // Add all form fields to FormData
+                const inputs = document.querySelectorAll('input[type="text"], input[type="file"]');
+                inputs.forEach(input => {
+                    if (input.type === 'file') {
+                        if (input.files[0]) {
+                            formData.append(input.name, input.files[0]);
+                        }
+                    } else {
+                        formData.append(input.name, input.value);
+                    }
+                });
+                
+                console.log('Sending upload request...');
+                
+                const response = await fetch('http://localhost:7071/api/storage', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    throw new Error('Invalid JSON response: ' + responseText);
+                }
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Upload Successful!</h3>
+                        <p><strong>File:</strong> ${data.originalFileName}</p>
+                        <p><strong>Uploaded as:</strong> ${data.fileName}</p>
+                        <p><strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></p>
+                        <p><strong>Upload Time:</strong> ${data.uploadedAt}</p>
+                        <h4>Metadata:</h4>
+                        <pre>${JSON.stringify(data.metadata, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Upload Failed</h3>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                        ${data.details ? `<p><strong>Details:</strong> ${data.details}</p>` : ''}
+                        ${data.missingFields ? `<p><strong>Missing Fields:</strong> ${data.missingFields.join(', ')}</p>` : ''}
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Upload Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
